@@ -1,0 +1,7 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[profile.dev]
+# One level of optimization in debug makes for a big speedup, which makes rendering more doable
+opt-level = 1
