@@ -1,8 +1,0 @@
-2022-10-12T17:42:18.212274Z  INFO eto_updater: running eto-updater
-2022-10-12T17:42:18.212648Z ERROR eto_updater: eto... bleh!
-2022-10-12T17:42:18.212887Z ERROR eto_updater: panic occurred: "called `Option::unwrap()` on a `None` value"
-2022-10-12T17:42:18.213051Z ERROR eto_updater: panic occurred in file 'crates\eto-cli\src\bin\eto-updater.rs' at line 15
-2022-10-12T17:44:00.171874Z  INFO eto_updater: running eto-updater
-2022-10-12T17:44:00.172235Z ERROR eto_cli: eto... bleh!
-2022-10-12T17:44:00.172431Z ERROR eto_cli: panic occurred: "called `Option::unwrap()` on a `None` value"
-2022-10-12T17:44:00.172664Z ERROR eto_cli: panic occurred in file 'crates\eto-cli\src\bin\eto-updater.rs' at line 9
