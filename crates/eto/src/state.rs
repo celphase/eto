@@ -32,11 +32,14 @@ impl State {
         event!(Level::INFO, version = metadata.version, "metadata");
 
         // Compile ignore patterns
-        let ignores: Vec<_> = metadata
+        let mut ignores: Vec<_> = metadata
             .ignore
             .into_iter()
             .map(|ignore| Pattern::new(&ignore).unwrap())
             .collect();
+
+        // Always ignore eto.log
+        ignores.push(Pattern::new("eto.log").unwrap());
 
         // Read all state files (this includes the metadata file intentionally)
         'outer: for entry in WalkDir::new(directory) {
@@ -61,7 +64,12 @@ impl State {
             let bytes = std::fs::read(path).unwrap();
             let hash = sha256::digest_bytes(&bytes);
 
-            event!(Level::DEBUG, path = diff_path.display().to_string(), hash, "adding");
+            event!(
+                Level::DEBUG,
+                path = diff_path.display().to_string(),
+                hash,
+                "adding"
+            );
             files.insert(diff_path, hash);
         }
 
