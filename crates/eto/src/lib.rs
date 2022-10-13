@@ -106,12 +106,15 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
 
     // Apply changes from the manifest
     for new in manifest.diff.new {
+        event!(Level::INFO, path = new.display().to_string(), "new");
         unpack_file(&mut zip, &new, directory_path);
     }
     for change in manifest.diff.change {
+        event!(Level::INFO, path = change.display().to_string(), "change");
         unpack_file(&mut zip, &change, directory_path);
     }
     for delete in manifest.diff.delete {
+        event!(Level::INFO, path = delete.display().to_string(), "delete");
         std::fs::remove_file(delete).unwrap();
     }
 
