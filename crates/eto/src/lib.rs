@@ -144,6 +144,7 @@ pub struct Manifest {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metadata {
     pub version: String,
+    pub ignore: Vec<String>,
 }
 
 impl Metadata {

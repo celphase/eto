@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::Error;
+use glob::Pattern;
 use pathdiff::diff_paths;
 use tracing::{event, Level};
 use walkdir::WalkDir;
@@ -26,28 +27,42 @@ impl State {
 
         let mut files = HashMap::new();
 
-        // TODO: Ignore certain files
-
         // Read state metadata
         let metadata = Metadata::from_dir(directory)?;
         event!(Level::INFO, version = metadata.version, "metadata");
 
+        // Compile ignore patterns
+        let ignores: Vec<_> = metadata
+            .ignore
+            .into_iter()
+            .map(|ignore| Pattern::new(&ignore).unwrap())
+            .collect();
+
         // Read all state files (this includes the metadata file intentionally)
-        for entry in WalkDir::new(directory) {
+        'outer: for entry in WalkDir::new(directory) {
             let entry = entry.unwrap();
             let path = entry.path();
 
+            // We don't handle directories directly, just files
             if entry.path().is_dir() {
                 continue;
+            }
+
+            // Check if we need to ignore this
+            let diff_path = diff_paths(path, directory).unwrap();
+            for ignore in &ignores {
+                if ignore.matches_path(&diff_path) {
+                    event!(Level::DEBUG, path = path.display().to_string(), "ignoring");
+                    continue 'outer;
+                }
             }
 
             // We've found a file, hash it so we can track changes
             let bytes = std::fs::read(path).unwrap();
             let hash = sha256::digest_bytes(&bytes);
 
-            let path = diff_paths(path, directory).unwrap();
-            event!(Level::DEBUG, path = path.display().to_string(), hash);
-            files.insert(path, hash);
+            event!(Level::DEBUG, path = diff_path.display().to_string(), hash, "adding");
+            files.insert(diff_path, hash);
         }
 
         Ok(Self {

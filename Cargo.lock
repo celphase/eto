@@ -233,6 +233,7 @@ name = "eto"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "glob",
  "pathdiff",
  "serde",
  "serde_json",
