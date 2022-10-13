@@ -1,20 +1,36 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
+use anyhow::Error;
 use pathdiff::diff_paths;
 use tracing::{event, Level};
 use walkdir::WalkDir;
 
+use crate::Metadata;
+
 #[derive(Default, Debug, Clone)]
 pub struct State {
+    pub version: String,
     pub files: HashMap<PathBuf, String>,
 }
 
 impl State {
-    pub fn read_dir(directory: &str) -> Self {
-        event!(Level::INFO, directory, "reading state");
+    pub fn read_dir(directory: &Path) -> Result<Self, Error> {
+        event!(
+            Level::INFO,
+            directory = directory.display().to_string(),
+            "reading state"
+        );
 
         let mut files = HashMap::new();
 
+        // Read state metadata
+        let metadata = Metadata::from_dir(directory)?;
+        event!(Level::INFO, version = metadata.version, "metadata");
+
+        // Read all state files (this includes the metadata file intentionally)
         for entry in WalkDir::new(directory) {
             let entry = entry.unwrap();
             let path = entry.path();
@@ -32,6 +48,9 @@ impl State {
             files.insert(path, hash);
         }
 
-        Self { files }
+        Ok(Self {
+            version: metadata.version,
+            files,
+        })
     }
 }

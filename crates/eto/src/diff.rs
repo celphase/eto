@@ -7,6 +7,8 @@ use crate::state::State;
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Diff {
+    pub old_version: String,
+    pub new_version: String,
     pub new: Vec<PathBuf>,
     pub change: Vec<PathBuf>,
     pub delete: Vec<PathBuf>,
@@ -16,7 +18,11 @@ impl Diff {
     pub fn from_states(old: &State, new: &State) -> Self {
         event!(Level::INFO, "diffing states");
 
-        let mut diff = Self::default();
+        let mut diff = Self {
+            old_version: old.version.clone(),
+            new_version: new.version.clone(),
+            ..Self::default()
+        };
 
         // Go through all files in new to check them against the old state
         for (path, hash) in &new.files {

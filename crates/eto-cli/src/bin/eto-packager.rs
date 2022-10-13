@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use clap::Parser;
 use tracing::{event, Level};
 
@@ -19,7 +21,15 @@ fn main() {
     eto_cli::init();
     event!(Level::INFO, "running eto-packager");
 
-    eto::package_diff(&args.old, &args.new, &args.package);
+    let old = Path::new(&args.old);
+    let new = Path::new(&args.new);
+    let package = Path::new(&args.package);
 
-    event!(Level::INFO, "successfully completed");
+    let result = eto::package_diff(old, new, package);
+
+    if let Err(error) = result {
+        event!(Level::ERROR, "failed:\n{:?}", error);
+    } else {
+        event!(Level::INFO, "successfully completed");
+    }
 }

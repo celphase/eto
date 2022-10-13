@@ -7,23 +7,30 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use tracing::{event, Level};
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
 pub use crate::{diff::Diff, state::State};
 
-pub fn package_diff(old_path: &str, new_path: &str, package_path: &str) {
-    let old = State::read_dir(old_path);
-    let new = State::read_dir(new_path);
+pub fn package_diff(old_path: &Path, new_path: &Path, package_path: &Path) -> Result<(), Error> {
+    let old = State::read_dir(old_path).context("failed to read old state")?;
+    let new = State::read_dir(new_path).context("failed to read new state")?;
 
     let diff = Diff::from_states(&old, &new);
 
     generate_package(&PathBuf::from(new_path), diff, package_path);
+
+    Ok(())
 }
 
-fn generate_package(new_path: &Path, diff: Diff, package_path: &str) {
-    event!(Level::INFO, package_path, "generating package");
+fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) {
+    event!(
+        Level::INFO,
+        path = package_path.display().to_string(),
+        "generating package"
+    );
 
     // Generate the metadata manifest used when applying and for information
     let manifest = Manifest { diff };
@@ -68,7 +75,24 @@ fn write_file(zip: &mut ZipWriter<File>, path: &PathBuf, new_path: &Path, buffer
     buffer.clear();
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Manifest {
     pub diff: Diff,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Metadata {
+    pub version: String,
+}
+
+impl Metadata {
+    pub fn from_dir(directory: &Path) -> Result<Self, Error> {
+        let mut path = directory.to_path_buf();
+        path.push("eto.json");
+
+        let file = File::open(path).context("unable to open eto.json")?;
+        let data = serde_json::from_reader(file)?;
+
+        Ok(data)
+    }
 }
