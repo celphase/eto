@@ -1,6 +1,6 @@
 use tracing::{event, Level};
 use tracing_subscriber::{
-    prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
+    prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer,
 };
 
 pub fn init() {
@@ -11,12 +11,12 @@ pub fn init() {
     let file_appender = tracing_appender::rolling::never("./", "eto.log");
     let file_subscriber = tracing_subscriber::fmt::layer()
         .with_writer(file_appender)
-        .with_ansi(false);
+        .with_ansi(false)
+        .with_filter(EnvFilter::new("debug"));
 
     tracing_subscriber::registry()
-        .with(EnvFilter::new("info"))
         .with(file_subscriber)
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer().with_filter(EnvFilter::new("info")))
         .init()
 }
 
