@@ -26,6 +26,8 @@ impl State {
 
         let mut files = HashMap::new();
 
+        // TODO: Ignore certain files
+
         // Read state metadata
         let metadata = Metadata::from_dir(directory)?;
         event!(Level::INFO, version = metadata.version, "metadata");

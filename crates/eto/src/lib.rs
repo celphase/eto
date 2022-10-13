@@ -7,10 +7,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Error};
+use anyhow::{bail, Context, Error};
 use serde::{Deserialize, Serialize};
 use tracing::{event, Level};
-use zip::{write::FileOptions, CompressionMethod, ZipWriter};
+use zip::{write::FileOptions, CompressionMethod, ZipArchive, ZipWriter};
 
 pub use crate::{diff::Diff, state::State};
 
@@ -73,6 +73,64 @@ fn write_file(zip: &mut ZipWriter<File>, path: &PathBuf, new_path: &Path, buffer
 
     // Clean the buffer for future use
     buffer.clear();
+}
+
+pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(), Error> {
+    // Check the directory is an eto directory and load its metadata
+    let metadata =
+        Metadata::from_dir(directory_path).context("directory is not an eto tracked directory")?;
+
+    // Open the package
+    event!(
+        Level::INFO,
+        path = package_path.display().to_string(),
+        "loading package"
+    );
+    let file = std::fs::File::open(package_path).context("unable to find package")?;
+    let mut zip = ZipArchive::new(file).unwrap();
+
+    // Load the manifest from the package
+    let manifest_file = zip
+        .by_name("eto-manifest.json")
+        .context("package does not contain manifest")?;
+    let manifest: Manifest = serde_json::from_reader(manifest_file).unwrap();
+
+    // Verify current version matches the manifest old version
+    if manifest.diff.old_version != metadata.version {
+        bail!(
+            "package was made for version \"{}\", but current version is \"{}\"",
+            manifest.diff.old_version,
+            metadata.version
+        );
+    }
+
+    // Apply changes from the manifest
+    for new in manifest.diff.new {
+        unpack_file(&mut zip, &new, directory_path);
+    }
+    for change in manifest.diff.change {
+        unpack_file(&mut zip, &change, directory_path);
+    }
+    for delete in manifest.diff.delete {
+        std::fs::remove_file(delete).unwrap();
+    }
+
+    Ok(())
+}
+
+fn unpack_file(zip: &mut ZipArchive<File>, path: &Path, directory_path: &Path) {
+    let mut zip_file = zip.by_name(&path.to_string_lossy()).unwrap();
+
+    let mut target_path = directory_path.to_path_buf();
+    target_path.push(path);
+
+    // Create the parent directory if necessary
+    let prefix = target_path.parent().unwrap();
+    std::fs::create_dir_all(prefix).unwrap();
+
+    let mut target_file = File::create(target_path).unwrap();
+
+    std::io::copy(&mut zip_file, &mut target_file).unwrap();
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
