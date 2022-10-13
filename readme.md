@@ -6,6 +6,19 @@ A small updater.
 
 ## Usage
 
+To make sure the old and new directories are correct, you need to create an `eto.json` file, that
+contains some metadata.
+
+```json
+{
+  "version": "1.0",
+  "ignore": []
+}
+```
+
+`version` will be checked by the updater when applying a package.
+Glob patterns in `ignore` will be ignored when scanning the state of a directory.
+
 ### eto-package
 
 ```
