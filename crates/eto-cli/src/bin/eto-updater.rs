@@ -27,5 +27,8 @@ fn main() {
         event!(Level::ERROR, "failed:\n{:?}", error);
     } else {
         event!(Level::INFO, "successfully completed");
+
+        // Delete the package file since we're done successfully
+        std::fs::remove_file(package).unwrap();
     }
 }
