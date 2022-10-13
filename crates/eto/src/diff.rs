@@ -7,9 +7,9 @@ use crate::state::State;
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Diff {
-    new: Vec<PathBuf>,
-    change: Vec<PathBuf>,
-    delete: Vec<PathBuf>,
+    pub new: Vec<PathBuf>,
+    pub change: Vec<PathBuf>,
+    pub delete: Vec<PathBuf>,
 }
 
 impl Diff {
