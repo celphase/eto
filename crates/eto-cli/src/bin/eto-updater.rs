@@ -7,10 +7,21 @@ fn main() {
     eto_cli::init();
     event!(Level::INFO, "running eto-updater");
 
-    // TODO: Scan for a package.zip
-    let package = Path::new("./package.zip");
+    // Scan for a package.zip
+    let result = glob::glob("./*.zip");
+    let package = if let Some(result) = result
+        .ok()
+        .and_then(|mut paths| paths.next())
+        .and_then(|result| result.ok())
+    {
+        result
+    } else {
+        event!(Level::ERROR, "couldn't find package zip");
+        return;
+    };
+
     let directory = Path::new("./");
-    let result = patch_directory(package, directory);
+    let result = patch_directory(&package, directory);
 
     if let Err(error) = result {
         event!(Level::ERROR, "failed:\n{:?}", error);
