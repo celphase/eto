@@ -29,6 +29,6 @@ fn main() {
         event!(Level::INFO, "successfully completed");
 
         // Delete the package file since we're done successfully
-        std::fs::remove_file(package).unwrap();
+        let _ = std::fs::remove_file(package);
     }
 }

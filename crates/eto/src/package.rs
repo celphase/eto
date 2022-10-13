@@ -112,7 +112,12 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
     }
     for delete in manifest.diff.delete {
         event!(Level::INFO, path = delete.display().to_string(), "delete");
-        std::fs::remove_file(delete).unwrap();
+        let result = std::fs::remove_file(delete);
+
+        // We don't particularly care if this doesn't succeed, but if it doesn't at least log it
+        if result.is_err() {
+            event!(Level::WARN, "attempted to remove file that doesn't exist");
+        }
     }
 
     Ok(())
