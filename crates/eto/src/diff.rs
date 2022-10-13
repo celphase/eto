@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
 use tracing::{event, Level};
 
 use crate::state::State;
 
-#[derive(Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Diff {
     new: Vec<PathBuf>,
     change: Vec<PathBuf>,
@@ -23,11 +24,7 @@ impl Diff {
             if let Some(old_hash) = old.files.get(path) {
                 // It does exist, check if it changed
                 if old_hash != hash {
-                    event!(
-                        Level::INFO,
-                        path = path.display().to_string(),
-                        "change"
-                    );
+                    event!(Level::INFO, path = path.display().to_string(), "change");
                     diff.change.push(path.clone());
                 }
             } else {
@@ -40,11 +37,7 @@ impl Diff {
         // Go through all old files, and check if any were deleted in the new state
         for path in old.files.keys() {
             if !new.files.contains_key(path) {
-                event!(
-                    Level::INFO,
-                    path = path.display().to_string(),
-                    "delete"
-                );
+                event!(Level::INFO, path = path.display().to_string(), "delete");
                 diff.delete.push(path.clone());
             }
         }

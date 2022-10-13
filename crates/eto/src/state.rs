@@ -4,7 +4,7 @@ use pathdiff::diff_paths;
 use tracing::{event, Level};
 use walkdir::WalkDir;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct State {
     pub files: HashMap<PathBuf, String>,
 }

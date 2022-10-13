@@ -11,7 +11,7 @@ struct Args {
     new: String,
 
     #[arg(short, long)]
-    output: String,
+    package: String,
 }
 
 fn main() {
@@ -19,7 +19,7 @@ fn main() {
     eto_cli::init();
     event!(Level::INFO, "running eto-packager");
 
-    eto::package_diff(&args.old, &args.new, &args.output);
+    eto::package_diff(&args.old, &args.new, &args.package);
 
     event!(Level::INFO, "successfully completed");
 }
