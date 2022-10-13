@@ -17,7 +17,7 @@ contains some metadata.
 ```
 
 `version` will be checked by the updater when applying a package.
-Glob patterns in `ignore` will be ignored when scanning the state of a directory.
+Files matching glob patterns in `ignore` will be ignored when scanning the state of a directory.
 
 ### eto-package
 
