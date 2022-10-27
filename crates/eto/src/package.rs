@@ -34,13 +34,13 @@ fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) -> Result<
     let manifest_json = serde_json::to_string(&manifest).unwrap();
 
     // Create the target package
-    let file = File::create(&package_path).unwrap();
+    let file = File::create(&package_path)?;
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
 
     // Write the manifest to the package
-    zip.start_file("eto-manifest.json", options).unwrap();
-    zip.write_all(manifest_json.as_bytes()).unwrap();
+    zip.start_file("eto-manifest.json", options)?;
+    zip.write_all(manifest_json.as_bytes())?;
 
     // Write all files that are either new or changed, as we need their content
     let mut buffer = Vec::new();
@@ -51,7 +51,7 @@ fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) -> Result<
         write_file(&mut zip, &path, new_path, &mut buffer)?;
     }
 
-    zip.finish().unwrap();
+    zip.finish()?;
 
     Ok(())
 }
@@ -113,11 +113,11 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
     // Apply changes from the manifest
     for new in manifest.diff.new {
         event!(Level::INFO, path = new.display().to_string(), "new");
-        unpack_file(&mut zip, &new, directory_path);
+        unpack_file(&mut zip, &new, directory_path)?;
     }
     for change in manifest.diff.change {
         event!(Level::INFO, path = change.display().to_string(), "change");
-        unpack_file(&mut zip, &change, directory_path);
+        unpack_file(&mut zip, &change, directory_path)?;
     }
     for delete in manifest.diff.delete {
         event!(Level::INFO, path = delete.display().to_string(), "delete");
@@ -132,19 +132,26 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
     Ok(())
 }
 
-fn unpack_file(zip: &mut ZipArchive<File>, path: &Path, directory_path: &Path) {
-    let mut zip_file = zip.by_name(&path.to_string_lossy()).unwrap();
+fn unpack_file(
+    zip: &mut ZipArchive<File>,
+    path: &Path,
+    directory_path: &Path,
+) -> Result<(), Error> {
+    let mut zip_file = zip.by_name(&path.to_string_lossy())?;
 
     let mut target_path = directory_path.to_path_buf();
     target_path.push(path);
 
     // Create the parent directory if necessary
-    let prefix = target_path.parent().unwrap();
-    std::fs::create_dir_all(prefix).unwrap();
+    if let Some(prefix) = target_path.parent() {
+        std::fs::create_dir_all(prefix)?;
+    }
 
-    let mut target_file = File::create(target_path).unwrap();
+    let mut target_file = File::create(target_path)?;
 
-    std::io::copy(&mut zip_file, &mut target_file).unwrap();
+    std::io::copy(&mut zip_file, &mut target_file)?;
+
+    Ok(())
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
