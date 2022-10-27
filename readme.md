@@ -4,6 +4,17 @@ A small updater.
 
 ![bleh](bleh.png)
 
+## Installation
+
+For Windows, pre-built binaries are provided in the GitHub releases section.
+
+If you are on another system, or want to build eto from scratch, you can install the tools using
+"cargo". The best way to get "cargo" is using [rustup](https://rustup.rs/).
+
+```sh
+cargo install --release
+```
+
 ## Usage
 
 To make sure the old and new directories are correct, you need to create an `eto.json` file, that
