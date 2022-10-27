@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Error;
+use anyhow::{Context, Error};
 use glob::Pattern;
 use pathdiff::diff_paths;
 use tracing::{event, Level};
@@ -32,18 +32,19 @@ impl State {
         event!(Level::INFO, version = metadata.version, "metadata");
 
         // Compile ignore patterns
-        let mut ignores: Vec<_> = metadata
+        let ignores: Result<Vec<_>, _> = metadata
             .ignore
             .into_iter()
-            .map(|ignore| Pattern::new(&ignore).unwrap())
+            .map(|ignore| Pattern::new(&ignore))
             .collect();
+        let mut ignores = ignores?;
 
         // Always ignore eto.log
         ignores.push(Pattern::new("eto.log").unwrap());
 
         // Read all state files (this includes the metadata file intentionally)
         'outer: for entry in WalkDir::new(directory) {
-            let entry = entry.unwrap();
+            let entry = entry?;
             let path = entry.path();
 
             // We don't handle directories directly, just files
@@ -51,17 +52,20 @@ impl State {
                 continue;
             }
 
+            let path_str = path.display().to_string();
+            event!(Level::DEBUG, path = path_str, "checking path");
+
             // Check if we need to ignore this
             let diff_path = diff_paths(path, directory).unwrap();
             for ignore in &ignores {
                 if ignore.matches_path(&diff_path) {
-                    event!(Level::DEBUG, path = path.display().to_string(), "ignoring");
+                    event!(Level::DEBUG, path = path_str, "ignoring");
                     continue 'outer;
                 }
             }
 
             // We've found a file, hash it so we can track changes
-            let bytes = std::fs::read(path).unwrap();
+            let bytes = std::fs::read(path).context("failed to read file to track")?;
             let hash = sha256::digest_bytes(&bytes);
 
             event!(
