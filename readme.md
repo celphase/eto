@@ -38,8 +38,8 @@ eto-packager --old ./my-old-dir --new ./my-new-dir -p ./package.zip
 
 ### eto-updater
 
-Place in target directory along with the package zip and run.
-Updater automatically finds the package and applies.
+Place the executable in a target directory, along with the package zip, and run.
+The updater automatically finds the package and applies it to the current directory.
 
 ## License
 
