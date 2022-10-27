@@ -17,12 +17,12 @@ pub fn package_diff(old_path: &Path, new_path: &Path, package_path: &Path) -> Re
 
     let diff = Diff::from_states(&old, &new);
 
-    generate_package(&PathBuf::from(new_path), diff, package_path);
+    generate_package(&PathBuf::from(new_path), diff, package_path)?;
 
     Ok(())
 }
 
-fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) {
+fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) -> Result<(), Error> {
     event!(
         Level::INFO,
         path = package_path.display().to_string(),
@@ -45,31 +45,40 @@ fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) {
     // Write all files that are either new or changed, as we need their content
     let mut buffer = Vec::new();
     for path in manifest.diff.new {
-        write_file(&mut zip, &path, new_path, &mut buffer);
+        write_file(&mut zip, &path, new_path, &mut buffer)?;
     }
     for path in manifest.diff.change {
-        write_file(&mut zip, &path, new_path, &mut buffer);
+        write_file(&mut zip, &path, new_path, &mut buffer)?;
     }
 
     zip.finish().unwrap();
+
+    Ok(())
 }
 
-fn write_file(zip: &mut ZipWriter<File>, path: &PathBuf, new_path: &Path, buffer: &mut Vec<u8>) {
+fn write_file(
+    zip: &mut ZipWriter<File>,
+    path: &PathBuf,
+    new_path: &Path,
+    buffer: &mut Vec<u8>,
+) -> Result<(), Error> {
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
-    zip.start_file(path.to_string_lossy(), options).unwrap();
+    zip.start_file(path.to_string_lossy(), options)?;
 
     let mut source_path = new_path.to_path_buf();
     source_path.push(path);
 
     // Read the entire file
-    let mut file = File::open(source_path).unwrap();
-    file.read_to_end(buffer).unwrap();
+    let mut file = File::open(source_path)?;
+    file.read_to_end(buffer)?;
 
     // Write the contents to the zip
-    zip.write_all(buffer).unwrap();
+    zip.write_all(buffer)?;
 
     // Clean the buffer for future use
     buffer.clear();
+
+    Ok(())
 }
 
 pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(), Error> {

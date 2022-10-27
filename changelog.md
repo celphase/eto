@@ -3,6 +3,7 @@
 ## 0.1.2
 
 - Fix filesystem errors not being correctly passed up in state scans.
+- Fix compression errors not being correctly passed up.
 
 ## 0.1.1
 
