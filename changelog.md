@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Improve error handling on missing `eto.json`.
+
 ## 0.1.3
 
 - Add `not_running` to metadata.

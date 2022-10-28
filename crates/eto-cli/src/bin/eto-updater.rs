@@ -9,7 +9,15 @@ fn main() {
     event!(Level::INFO, "running eto-updater");
 
     // Safety check TODO: cleanup
-    let metadata = Metadata::from_dir("./").expect("eto.json is missing");
+    let metadata = Metadata::from_dir("./");
+    let metadata = match metadata {
+        Ok(v) => v,
+        Err(error) => {
+            event!(Level::ERROR, "failed:\n{:?}", error);
+            return;
+        }
+    };
+
     let mut system = System::new();
     system.refresh_processes();
     for process in metadata.not_running {
