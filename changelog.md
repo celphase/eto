@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Add `not_running` to metadata.
+
 ## 0.1.2
 
 - Fix filesystem errors not being correctly passed up in state scans.

@@ -15,13 +15,17 @@ pub use crate::{
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metadata {
+    /// The current version of the installation.
     pub version: String,
+    /// Files to ignore when generating a package.
     pub ignore: Vec<String>,
+    /// Disallow the following executables from being running while updating.
+    pub not_running: Vec<String>,
 }
 
 impl Metadata {
-    pub fn from_dir(directory: &Path) -> Result<Self, Error> {
-        let mut path = directory.to_path_buf();
+    pub fn from_dir<P: AsRef<Path>>(directory: P) -> Result<Self, Error> {
+        let mut path = directory.as_ref().to_path_buf();
         path.push("eto.json");
 
         let file = File::open(path).context("unable to open eto.json")?;

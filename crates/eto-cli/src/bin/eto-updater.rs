@@ -1,11 +1,26 @@
 use std::path::Path;
 
-use eto::patch_directory;
+use eto::{patch_directory, Metadata};
+use sysinfo::{System, SystemExt};
 use tracing::{event, Level};
 
 fn main() {
     eto_cli::init();
     event!(Level::INFO, "running eto-updater");
+
+    // Safety check TODO: cleanup
+    let metadata = Metadata::from_dir("./").expect("eto.json is missing");
+    let mut system = System::new();
+    system.refresh_processes();
+    for process in metadata.not_running {
+        if system.processes_by_name(&process).count() != 0 {
+            event!(
+                Level::ERROR,
+                "{} is currently running, close this before applying update",
+                process
+            );
+        }
+    }
 
     // Scan for a package.zip
     let result = glob::glob("./*.zip");

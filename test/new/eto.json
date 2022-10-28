@@ -1,4 +1,5 @@
 {
     "version": "2",
-    "ignore": ["ignored/*"]
+    "ignore": ["ignored/*"],
+    "not_running": ["Taskmgr.exe"]
 }
