@@ -34,7 +34,7 @@ fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) -> Result<
     let manifest_json = serde_json::to_string(&manifest).unwrap();
 
     // Create the target package
-    let file = File::create(&package_path)?;
+    let file = File::create(package_path)?;
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
 

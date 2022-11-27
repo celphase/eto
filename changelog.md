@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 (upcoming)
+
+- Replace separate eto binaries with sub-commands.
+
 ## 0.1.4
 
 - Improve error handling on missing `eto.json`.

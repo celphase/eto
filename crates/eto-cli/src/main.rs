@@ -1,13 +1,64 @@
+mod logging;
+
 use std::path::Path;
 
+use clap::{Args, Parser, Subcommand};
 use eto::{patch_directory, Metadata};
 use sysinfo::{System, SystemExt};
 use tracing::{event, Level};
 
-fn main() {
-    eto_cli::init();
-    event!(Level::INFO, "running eto-updater");
+#[derive(Parser, Debug)]
+#[command(name = "cli", author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
 
+#[derive(Subcommand, Debug)]
+enum Command {
+    Package(PackageCommand),
+    Update,
+}
+
+#[derive(Args, Debug)]
+struct PackageCommand {
+    #[arg(long)]
+    old: String,
+
+    #[arg(long)]
+    new: String,
+
+    #[arg(short, long)]
+    package: String,
+}
+
+fn main() {
+    let args = Cli::parse();
+
+    logging::init();
+    event!(Level::INFO, "running eto-packager");
+
+    match args.command {
+        Command::Package(command) => command_package(command),
+        Command::Update => command_update(),
+    }
+}
+
+fn command_package(command: PackageCommand) {
+    let old = Path::new(&command.old);
+    let new = Path::new(&command.new);
+    let package = Path::new(&command.package);
+
+    let result = eto::package_diff(old, new, package);
+
+    if let Err(error) = result {
+        event!(Level::ERROR, "failed:\n{:?}", error);
+    } else {
+        event!(Level::INFO, "successfully completed");
+    }
+}
+
+fn command_update() {
     // Safety check TODO: cleanup
     let metadata = Metadata::from_dir("./");
     let metadata = match metadata {
