@@ -3,9 +3,10 @@
 ## 0.2.0 (upcoming)
 
 - Replace separate eto binaries with sub-commands.
-- Remove "not_running" feature, `eto-updater` (now `eto auto-patch`) should no longer be run
-    directly by a user, an external batch script should check for this instead if you still want
-    this functionality.
+- Remove "not_running" feature, `eto-updater` (now `eto patch`) should no longer be run directly by
+    a user, an external batch script should check for this instead if you still want this
+    functionality.
+- Add specifying package location to `eto patch`.
 
 ## 0.1.4
 

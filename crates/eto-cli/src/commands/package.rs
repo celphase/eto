@@ -11,6 +11,7 @@ pub fn command(command: PackageCommand) -> Result<(), Error> {
     eto::package_diff(a, b, package)
 }
 
+/// Create a package from A and B state directories.
 #[derive(Args, Debug)]
 pub struct PackageCommand {
     /// Path to a directory containing state A.

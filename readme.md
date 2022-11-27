@@ -30,16 +30,11 @@ contains some metadata.
 `version` will be checked by the updater when applying a package.
 Files matching glob patterns in `ignore` will be ignored when scanning the state of a directory.
 
-### eto-package
+### Creating a Package
 
 ```
-eto-packager --old ./my-old-dir --new ./my-new-dir -p ./package.zip
+eto package -a ./my-old-dir -b ./my-new-dir -o ./package.etopack
 ```
-
-### eto-updater
-
-Place the executable in a target directory, along with the package zip, and run.
-The updater automatically finds the package and applies it to the current directory.
 
 ## License
 

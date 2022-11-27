@@ -1,2 +1,2 @@
-pub mod auto_patch;
 pub mod package;
+pub mod patch;

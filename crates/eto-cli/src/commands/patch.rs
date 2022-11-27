@@ -3,9 +3,9 @@ use std::path::Path;
 use anyhow::{anyhow, Error};
 use clap::Args;
 
-pub fn command() -> Result<(), Error> {
+pub fn command(command: AutoPatchCommand) -> Result<(), Error> {
     // Scan for a package.etopack
-    let result = glob::glob("./*.etopack");
+    let result = glob::glob(&command.package);
     let package = if let Some(result) = result
         .ok()
         .and_then(|mut paths| paths.next())
@@ -19,13 +19,10 @@ pub fn command() -> Result<(), Error> {
     let directory = Path::new("./");
     eto::patch_directory(&package, directory)?;
 
-    // Delete the package file since we're done successfully
-    let _ = std::fs::remove_file(package);
-
     Ok(())
 }
 
-/// Automatically patch the working directory by finding and applying a package.
+/// Patch the working directory by finding and applying a package.
 ///
 /// This command is intended to be used either from a script, or called by another process to
 /// update itself.
@@ -36,9 +33,14 @@ pub fn command() -> Result<(), Error> {
 /// restart it.
 #[derive(Args, Debug)]
 pub struct AutoPatchCommand {
+    /// Location of the package to apply. Allows glob patterns (for example, `*.etopack`).
+    #[arg(short, long)]
+    package: String,
+
     /// If given, wait for a process with this process identifier to close before applying.
     #[arg(long)]
     wait_for: Option<u32>,
+
     /// If given, run this command after completion.
     #[arg(long)]
     on_complete: Option<String>,

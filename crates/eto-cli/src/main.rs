@@ -4,7 +4,7 @@ mod logging;
 use clap::{Parser, Subcommand};
 use tracing::{event, Level};
 
-use crate::commands::{auto_patch::AutoPatchCommand, package::PackageCommand};
+use crate::commands::{patch::AutoPatchCommand, package::PackageCommand};
 
 #[derive(Parser, Debug)]
 #[command(name = "cli", author, version, about, long_about = None)]
@@ -15,9 +15,8 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Create a package from A and B state directories.
     Package(PackageCommand),
-    AutoPatch(AutoPatchCommand),
+    Patch(AutoPatchCommand),
 }
 
 fn main() {
@@ -29,13 +28,14 @@ fn main() {
     // Run the specific given command
     let result = match args.command {
         Command::Package(command) => commands::package::command(command),
-        Command::AutoPatch(_) => commands::auto_patch::command(),
+        Command::Patch(command) => commands::patch::command(command),
     };
 
     // Log result
     if let Err(error) = result {
         event!(Level::ERROR, "failed:\n{:?}", error);
-    } else {
-        event!(Level::INFO, "successfully completed");
+        std::process::exit(1);
     }
+
+    event!(Level::INFO, "successfully completed");
 }
