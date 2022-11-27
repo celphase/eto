@@ -2,8 +2,9 @@ mod logging;
 
 use std::path::Path;
 
+use anyhow::{anyhow, Error};
 use clap::{Args, Parser, Subcommand};
-use eto::{patch_directory, Metadata};
+use eto::Metadata;
 use sysinfo::{System, SystemExt};
 use tracing::{event, Level};
 
@@ -38,18 +39,10 @@ fn main() {
     logging::init();
     event!(Level::INFO, "running eto-packager");
 
-    match args.command {
+    let result = match args.command {
         Command::Package(command) => command_package(command),
         Command::Update => command_update(),
-    }
-}
-
-fn command_package(command: PackageCommand) {
-    let old = Path::new(&command.old);
-    let new = Path::new(&command.new);
-    let package = Path::new(&command.package);
-
-    let result = eto::package_diff(old, new, package);
+    };
 
     if let Err(error) = result {
         event!(Level::ERROR, "failed:\n{:?}", error);
@@ -58,16 +51,17 @@ fn command_package(command: PackageCommand) {
     }
 }
 
-fn command_update() {
+fn command_package(command: PackageCommand) -> Result<(), Error> {
+    let old = Path::new(&command.old);
+    let new = Path::new(&command.new);
+    let package = Path::new(&command.package);
+
+    eto::package_diff(old, new, package)
+}
+
+fn command_update() -> Result<(), Error> {
     // Safety check TODO: cleanup
-    let metadata = Metadata::from_dir("./");
-    let metadata = match metadata {
-        Ok(v) => v,
-        Err(error) => {
-            event!(Level::ERROR, "failed:\n{:?}", error);
-            return;
-        }
-    };
+    let metadata = Metadata::from_dir("./")?;
 
     let mut system = System::new();
     system.refresh_processes();
@@ -90,19 +84,14 @@ fn command_update() {
     {
         result
     } else {
-        event!(Level::ERROR, "couldn't find package zip");
-        return;
+        return Err(anyhow!("couldn't find package zip"));
     };
 
     let directory = Path::new("./");
-    let result = patch_directory(&package, directory);
+    eto::patch_directory(&package, directory)?;
 
-    if let Err(error) = result {
-        event!(Level::ERROR, "failed:\n{:?}", error);
-    } else {
-        event!(Level::INFO, "successfully completed");
+    // Delete the package file since we're done successfully
+    let _ = std::fs::remove_file(package);
 
-        // Delete the package file since we're done successfully
-        let _ = std::fs::remove_file(package);
-    }
+    Ok(())
 }
