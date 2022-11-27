@@ -11,18 +11,18 @@ use zip::{write::FileOptions, CompressionMethod, ZipArchive, ZipWriter};
 
 use crate::{diff::Diff, state::State, Metadata};
 
-pub fn package_diff(old_path: &Path, new_path: &Path, package_path: &Path) -> Result<(), Error> {
-    let old = State::read_dir(old_path).context("failed to read old state")?;
-    let new = State::read_dir(new_path).context("failed to read new state")?;
+pub fn package_diff(a_path: &Path, b_path: &Path, package_path: &Path) -> Result<(), Error> {
+    let a = State::read_dir(a_path).context("failed to read a state")?;
+    let b = State::read_dir(b_path).context("failed to read b state")?;
 
-    let diff = Diff::from_states(&old, &new);
+    let diff = Diff::from_states(&a, &b);
 
-    generate_package(&PathBuf::from(new_path), diff, package_path)?;
+    generate_package(&PathBuf::from(b_path), diff, package_path)?;
 
     Ok(())
 }
 
-fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) -> Result<(), Error> {
+fn generate_package(b_path: &Path, diff: Diff, package_path: &Path) -> Result<(), Error> {
     event!(
         Level::INFO,
         path = package_path.display().to_string(),
@@ -45,10 +45,10 @@ fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) -> Result<
     // Write all files that are either new or changed, as we need their content
     let mut buffer = Vec::new();
     for path in manifest.diff.new {
-        write_file(&mut zip, &path, new_path, &mut buffer)?;
+        write_file(&mut zip, &path, b_path, &mut buffer)?;
     }
     for path in manifest.diff.change {
-        write_file(&mut zip, &path, new_path, &mut buffer)?;
+        write_file(&mut zip, &path, b_path, &mut buffer)?;
     }
 
     zip.finish()?;
@@ -59,13 +59,13 @@ fn generate_package(new_path: &Path, diff: Diff, package_path: &Path) -> Result<
 fn write_file(
     zip: &mut ZipWriter<File>,
     path: &PathBuf,
-    new_path: &Path,
+    b_path: &Path,
     buffer: &mut Vec<u8>,
 ) -> Result<(), Error> {
     let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     zip.start_file(path.to_string_lossy(), options)?;
 
-    let mut source_path = new_path.to_path_buf();
+    let mut source_path = b_path.to_path_buf();
     source_path.push(path);
 
     // Read the entire file

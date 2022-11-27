@@ -17,33 +17,41 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
+    /// Create a package from A and B state directories.
     Package(PackageCommand),
-    Update,
+    /// Automatically update the current working directory by finding and applying a package.
+    AutoUpdate,
 }
 
 #[derive(Args, Debug)]
 struct PackageCommand {
-    #[arg(long)]
-    old: String,
+    /// Path to a directory containing state A.
+    #[arg(short)]
+    a: String,
 
-    #[arg(long)]
-    new: String,
+    /// Path to a directory containing state B.
+    #[arg(short)]
+    b: String,
 
+    /// Output path for the package, including the executable.
+    /// Recommended to use a .etopack extension.
     #[arg(short, long)]
-    package: String,
+    output: String,
 }
 
 fn main() {
     let args = Cli::parse();
 
     logging::init();
-    event!(Level::INFO, "running eto-packager");
+    event!(Level::INFO, "running eto command line tool");
 
+    // Run the specific given command
     let result = match args.command {
         Command::Package(command) => command_package(command),
-        Command::Update => command_update(),
+        Command::AutoUpdate => command_auto_update(),
     };
 
+    // Log result
     if let Err(error) = result {
         event!(Level::ERROR, "failed:\n{:?}", error);
     } else {
@@ -52,14 +60,14 @@ fn main() {
 }
 
 fn command_package(command: PackageCommand) -> Result<(), Error> {
-    let old = Path::new(&command.old);
-    let new = Path::new(&command.new);
-    let package = Path::new(&command.package);
+    let a = Path::new(&command.a);
+    let b = Path::new(&command.b);
+    let package = Path::new(&command.output);
 
-    eto::package_diff(old, new, package)
+    eto::package_diff(a, b, package)
 }
 
-fn command_update() -> Result<(), Error> {
+fn command_auto_update() -> Result<(), Error> {
     // Safety check TODO: cleanup
     let metadata = Metadata::from_dir("./")?;
 
@@ -75,8 +83,8 @@ fn command_update() -> Result<(), Error> {
         }
     }
 
-    // Scan for a package.zip
-    let result = glob::glob("./*.zip");
+    // Scan for a package.etopack
+    let result = glob::glob("./*.etopack");
     let package = if let Some(result) = result
         .ok()
         .and_then(|mut paths| paths.next())
@@ -84,7 +92,7 @@ fn command_update() -> Result<(), Error> {
     {
         result
     } else {
-        return Err(anyhow!("couldn't find package zip"));
+        return Err(anyhow!("couldn't find package"));
     };
 
     let directory = Path::new("./");
