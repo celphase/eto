@@ -2,26 +2,8 @@ use std::path::Path;
 
 use anyhow::{anyhow, Error};
 use clap::Args;
-use eto::Metadata;
-use sysinfo::{System, SystemExt};
-use tracing::{event, Level};
 
 pub fn command() -> Result<(), Error> {
-    // Safety check TODO: cleanup
-    let metadata = Metadata::from_dir("./")?;
-
-    let mut system = System::new();
-    system.refresh_processes();
-    for process in metadata.not_running {
-        if system.processes_by_name(&process).count() != 0 {
-            event!(
-                Level::ERROR,
-                "{} is currently running, close this before applying update",
-                process
-            );
-        }
-    }
-
     // Scan for a package.etopack
     let result = glob::glob("./*.etopack");
     let package = if let Some(result) = result

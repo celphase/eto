@@ -19,8 +19,6 @@ pub struct Metadata {
     pub version: String,
     /// Files to ignore when generating a package.
     pub ignore: Vec<String>,
-    /// Disallow the following executables from being running while updating.
-    pub not_running: Vec<String>,
 }
 
 impl Metadata {
