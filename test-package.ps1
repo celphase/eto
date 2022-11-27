@@ -1,1 +1,1 @@
-& cargo run --bin eto-packager -- --old ./test/old --new ./test/new -p ./package.zip
+& cargo run --bin eto -- package -a ./test/a -b ./test/b -o ./package.etopack

@@ -25,11 +25,21 @@ pub fn command() -> Result<(), Error> {
     Ok(())
 }
 
-/// Automatically patch a working directory by finding and applying a package.
+/// Automatically patch the working directory by finding and applying a package.
 ///
-/// This command is intended to be used either from a script, or called by a program to update
-/// itself.
+/// This command is intended to be used either from a script, or called by another process to
+/// update itself.
+///
 /// If you are using this for self-updating, make sure you copy the eto binary to a temporary
 /// location so it can update itself too.
+/// Use the `--wait-for` flag to wait until the original process closes, and `--on_complete` to
+/// restart it.
 #[derive(Args, Debug)]
-pub struct AutoPatchCommand {}
+pub struct AutoPatchCommand {
+    /// If given, wait for a process with this process identifier to close before applying.
+    #[arg(long)]
+    wait_for: Option<u32>,
+    /// If given, run this command after completion.
+    #[arg(long)]
+    on_complete: Option<String>,
+}

@@ -1,3 +1,3 @@
-Push-Location ./test/old
-& cargo run --bin eto-updater
+Push-Location ./test/a
+& cargo run --bin eto -- auto-patch
 Pop-Location
