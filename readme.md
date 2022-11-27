@@ -8,8 +8,9 @@ A small updater.
 
 For Windows, pre-built binaries are provided in the GitHub releases section.
 
-If you are on another system, or want to build eto from scratch, you can install the tools using
-"cargo". The best way to get "cargo" is using [rustup](https://rustup.rs/).
+If you are on another system, or want to build eto from scratch, you can install the eto command
+line tool using "cargo".
+The best way to get "cargo" is using [rustup](https://rustup.rs/).
 
 ```sh
 cargo install --release
