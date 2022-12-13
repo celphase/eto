@@ -33,8 +33,7 @@ fn create_write_package(b_path: &Path, diff: Diff, package_path: &Path) -> Resul
 
     // Create the target package file to write to with header
     let mut file = File::create(package_path)?;
-    let magic = "EtoPack1";
-    file.write_all(magic.as_bytes())?;
+    file.write_all(MAGIC.as_bytes())?;
 
     // Write content
     write_manifest(&mut file, &diff)?;
@@ -46,7 +45,7 @@ fn create_write_package(b_path: &Path, diff: Diff, package_path: &Path) -> Resul
 fn write_manifest(file: &mut File, diff: &Diff) -> Result<(), Error> {
     // Create the metadata manifest used when applying and for information
     let manifest = Manifest {
-        version: MAGIC.to_string(),
+        version: "0.1.0".to_string(),
         diff: Cow::Borrowed(diff),
     };
     let manifest_json = serde_json::to_string(&manifest).unwrap();
@@ -195,4 +194,4 @@ pub struct Manifest<'a> {
     pub diff: Cow<'a, Diff>,
 }
 
-const MAGIC: &str = "0.1.0";
+const MAGIC: &str = "EtoPack1";
