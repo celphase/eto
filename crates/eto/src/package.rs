@@ -116,7 +116,7 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
     let mut file = File::open(package_path).context("unable to find package")?;
 
     // Verify the magic
-    let mut magic_bytes = [0, 0, 0, 0];
+    let mut magic_bytes = [0, 0, 0, 0, 0, 0, 0, 0];
     file.read_exact(&mut magic_bytes)?;
     let magic = std::str::from_utf8(&magic_bytes);
     if magic != Ok(MAGIC) {
