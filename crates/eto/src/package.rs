@@ -75,7 +75,9 @@ fn write_files(b_path: &Path, file: &mut File, diff: &Diff) -> Result<(), Error>
     }
 
     // Write the generated archive to the file
+    tar.finish()?;
     drop(tar);
+    write_u32(file, archive.len() as u32)?;
     file.write_all(&archive)?;
 
     Ok(())
@@ -126,7 +128,7 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
     let manifest = read_manifest(&metadata, &mut file)?;
 
     // Apply changes from the manifest
-    read_unpack_files(&mut file, directory_path)?;
+    read_unpack_files(&mut file, directory_path).context("failed to decode gzip data block")?;
     for delete in &manifest.diff.delete {
         event!(Level::INFO, path = delete.display().to_string(), "delete");
         let result = std::fs::remove_file(delete);
@@ -159,6 +161,7 @@ fn read_manifest(metadata: &Metadata, file: &mut File) -> Result<Manifest<'stati
 
 fn read_unpack_files(file: &mut File, directory_path: &Path) -> Result<(), Error> {
     let bytes = read_u32(file)?;
+    event!(Level::INFO, bytes, "reading archive");
     let reader = file.take(bytes as u64);
     let mut archive = Archive::new(GzDecoder::new(reader));
 
