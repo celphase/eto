@@ -4,20 +4,7 @@ mod logging;
 use clap::{Parser, Subcommand};
 use tracing::{event, Level};
 
-use crate::commands::{patch::AutoPatchCommand, package::PackageCommand};
-
-#[derive(Parser, Debug)]
-#[command(name = "cli", author, version, about, long_about = None)]
-struct Cli {
-    #[command(subcommand)]
-    command: Command,
-}
-
-#[derive(Subcommand, Debug)]
-enum Command {
-    Package(PackageCommand),
-    Patch(AutoPatchCommand),
-}
+use crate::commands::{package::PackageCommand, patch::AutoPatchCommand};
 
 fn main() {
     let args = Cli::parse();
@@ -38,4 +25,17 @@ fn main() {
     }
 
     event!(Level::INFO, "successfully completed");
+}
+
+#[derive(Parser, Debug)]
+#[command(name = "cli", author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand, Debug)]
+enum Command {
+    Package(PackageCommand),
+    Patch(AutoPatchCommand),
 }

@@ -2,6 +2,7 @@
 
 ## 0.2.0 (upcoming)
 
+- **breaking**: Change package format to JSON + custom GZip + tar data blocks.
 - Replace separate eto binaries with sub-commands.
 - Remove "not_running" feature, `eto-updater` (now `eto patch`) should no longer be run directly by
     a user, an external batch script should check for this instead if you still want this

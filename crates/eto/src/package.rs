@@ -1,13 +1,15 @@
 use std::{
+    borrow::Cow,
     fs::File,
     io::{Read, Write},
     path::{Path, PathBuf},
 };
 
 use anyhow::{bail, Context, Error};
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use serde::{Deserialize, Serialize};
+use tar::Archive;
 use tracing::{event, Level};
-use zip::{write::FileOptions, CompressionMethod, ZipArchive, ZipWriter};
 
 use crate::{diff::Diff, state::State, Metadata};
 
@@ -17,66 +19,85 @@ pub fn package_diff(a_path: &Path, b_path: &Path, package_path: &Path) -> Result
 
     let diff = Diff::from_states(&a, &b);
 
-    generate_package(&PathBuf::from(b_path), diff, package_path)?;
+    create_write_package(&PathBuf::from(b_path), diff, package_path)?;
 
     Ok(())
 }
 
-fn generate_package(b_path: &Path, diff: Diff, package_path: &Path) -> Result<(), Error> {
+fn create_write_package(b_path: &Path, diff: Diff, package_path: &Path) -> Result<(), Error> {
     event!(
         Level::INFO,
         path = package_path.display().to_string(),
         "generating package"
     );
 
-    // Generate the metadata manifest used when applying and for information
-    let manifest = Manifest { diff };
-    let manifest_json = serde_json::to_string(&manifest).unwrap();
+    // Create the target package file to write to with header
+    let mut file = File::create(package_path)?;
+    let magic = "EtoPack1";
+    file.write_all(magic.as_bytes())?;
 
-    // Create the target package
-    let file = File::create(package_path)?;
-    let mut zip = ZipWriter::new(file);
-    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
-
-    // Write the manifest to the package
-    zip.start_file("eto-manifest.json", options)?;
-    zip.write_all(manifest_json.as_bytes())?;
-
-    // Write all files that are either new or changed, as we need their content
-    let mut buffer = Vec::new();
-    for path in manifest.diff.new {
-        write_file(&mut zip, &path, b_path, &mut buffer)?;
-    }
-    for path in manifest.diff.change {
-        write_file(&mut zip, &path, b_path, &mut buffer)?;
-    }
-
-    zip.finish()?;
+    // Write content
+    write_manifest(&mut file, &diff)?;
+    write_files(b_path, &mut file, &diff)?;
 
     Ok(())
 }
 
-fn write_file(
-    zip: &mut ZipWriter<File>,
+fn write_manifest(file: &mut File, diff: &Diff) -> Result<(), Error> {
+    // Create the metadata manifest used when applying and for information
+    let manifest = Manifest {
+        version: MAGIC.to_string(),
+        diff: Cow::Borrowed(diff),
+    };
+    let manifest_json = serde_json::to_string(&manifest).unwrap();
+
+    // Write the manifest to the package
+    write_u32(file, manifest_json.as_bytes().len() as u32)?;
+    file.write_all(manifest_json.as_bytes())?;
+
+    Ok(())
+}
+
+fn write_files(b_path: &Path, file: &mut File, diff: &Diff) -> Result<(), Error> {
+    // TODO: Write in-place rather than to memory.
+    // To do this, we need to use the `seek` functions available on File.
+
+    // Create the archive in-memory
+    let mut archive = Vec::new();
+    let encoder = GzEncoder::new(&mut archive, Compression::default());
+    let mut tar = tar::Builder::new(encoder);
+
+    // Write all files that are either new or changed, as we need their content
+    for path in &diff.new {
+        write_file(&mut tar, path, b_path)?;
+    }
+    for path in &diff.change {
+        write_file(&mut tar, path, b_path)?;
+    }
+
+    // Write the generated archive to the file
+    drop(tar);
+    file.write_all(&archive)?;
+
+    Ok(())
+}
+
+fn write_u32(file: &mut File, value: u32) -> Result<(), Error> {
+    let length_bytes = value.to_le_bytes();
+    file.write_all(&length_bytes)?;
+    Ok(())
+}
+
+fn write_file<W: Write>(
+    tar: &mut tar::Builder<W>,
     path: &PathBuf,
     b_path: &Path,
-    buffer: &mut Vec<u8>,
 ) -> Result<(), Error> {
-    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
-    zip.start_file(path.to_string_lossy(), options)?;
-
     let mut source_path = b_path.to_path_buf();
     source_path.push(path);
 
-    // Read the entire file
-    let mut file = File::open(source_path)?;
-    file.read_to_end(buffer)?;
-
-    // Write the contents to the zip
-    zip.write_all(buffer)?;
-
-    // Clean the buffer for future use
-    buffer.clear();
+    let mut file = File::open(source_path).context("unable to open diff file")?;
+    tar.append_file(path, &mut file)?;
 
     Ok(())
 }
@@ -92,34 +113,22 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
         path = package_path.display().to_string(),
         "loading package"
     );
-    let file = std::fs::File::open(package_path).context("unable to find package")?;
-    let mut zip = ZipArchive::new(file).unwrap();
+    let mut file = File::open(package_path).context("unable to find package")?;
+
+    // Verify the magic
+    let mut magic_bytes = [0, 0, 0, 0];
+    file.read_exact(&mut magic_bytes)?;
+    let magic = std::str::from_utf8(&magic_bytes);
+    if magic != Ok(MAGIC) {
+        bail!("package magic number does not match, file is likely not a package or has an unsupported format version");
+    }
 
     // Load the manifest from the package
-    let manifest_file = zip
-        .by_name("eto-manifest.json")
-        .context("package does not contain manifest")?;
-    let manifest: Manifest = serde_json::from_reader(manifest_file).unwrap();
-
-    // Verify current version matches the manifest old version
-    if manifest.diff.old_version != metadata.version {
-        bail!(
-            "package was made for version \"{}\", but current version is \"{}\"",
-            manifest.diff.old_version,
-            metadata.version
-        );
-    }
+    let manifest = read_manifest(&metadata, &mut file)?;
 
     // Apply changes from the manifest
-    for new in manifest.diff.new {
-        event!(Level::INFO, path = new.display().to_string(), "new");
-        unpack_file(&mut zip, &new, directory_path)?;
-    }
-    for change in manifest.diff.change {
-        event!(Level::INFO, path = change.display().to_string(), "change");
-        unpack_file(&mut zip, &change, directory_path)?;
-    }
-    for delete in manifest.diff.delete {
+    read_unpack_files(&mut file, directory_path)?;
+    for delete in &manifest.diff.delete {
         event!(Level::INFO, path = delete.display().to_string(), "delete");
         let result = std::fs::remove_file(delete);
 
@@ -132,29 +141,58 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
     Ok(())
 }
 
-fn unpack_file(
-    zip: &mut ZipArchive<File>,
-    path: &Path,
-    directory_path: &Path,
-) -> Result<(), Error> {
-    let mut zip_file = zip.by_name(&path.to_string_lossy())?;
+fn read_manifest(metadata: &Metadata, file: &mut File) -> Result<Manifest<'static>, Error> {
+    let bytes = read_u32(file)?;
+    let reader = file.take(bytes as u64);
+    let manifest: Manifest = serde_json::from_reader(reader).unwrap();
 
-    let mut target_path = directory_path.to_path_buf();
-    target_path.push(path);
-
-    // Create the parent directory if necessary
-    if let Some(prefix) = target_path.parent() {
-        std::fs::create_dir_all(prefix)?;
+    // Verify current version matches the manifest old version
+    if manifest.diff.old_version != metadata.version {
+        bail!(
+            "package was made for version \"{}\", but current version is \"{}\"",
+            manifest.diff.old_version,
+            metadata.version
+        );
     }
 
-    let mut target_file = File::create(target_path)?;
+    Ok(manifest)
+}
 
-    std::io::copy(&mut zip_file, &mut target_file)?;
+fn read_unpack_files(file: &mut File, directory_path: &Path) -> Result<(), Error> {
+    let bytes = read_u32(file)?;
+    let reader = file.take(bytes as u64);
+    let mut archive = Archive::new(GzDecoder::new(reader));
+
+    for change in archive.entries()? {
+        let mut change = change?;
+
+        // Create the final path
+        let path = change.path()?;
+        let mut target_path = directory_path.to_path_buf();
+        target_path.push(&path);
+
+        // Create the parent directory if necessary
+        if let Some(prefix) = target_path.parent() {
+            std::fs::create_dir_all(prefix)?;
+        }
+
+        event!(Level::INFO, path = path.display().to_string(), "writing");
+        change.unpack(&target_path)?;
+    }
 
     Ok(())
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Manifest {
-    pub diff: Diff,
+fn read_u32(file: &mut File) -> Result<u32, Error> {
+    let mut value_bytes = [0, 0, 0, 0];
+    file.read_exact(&mut value_bytes)?;
+    Ok(u32::from_le_bytes(value_bytes))
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Manifest<'a> {
+    pub version: String,
+    pub diff: Cow<'a, Diff>,
+}
+
+const MAGIC: &str = "0.1.0";
