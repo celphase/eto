@@ -21,7 +21,8 @@ pub fn create_package(a_path: &Path, b_path: &Path, package_path: &Path) -> Resu
 
     let diff = Diff::from_states(&a, &b);
 
-    create_write_package(&PathBuf::from(b_path), diff, package_path)?;
+    create_write_package(&PathBuf::from(b_path), diff, package_path)
+        .context("failed to create package")?;
 
     Ok(())
 }
@@ -34,12 +35,12 @@ fn create_write_package(b_path: &Path, diff: Diff, package_path: &Path) -> Resul
     );
 
     // Create the target package file to write to with header
-    let mut file = File::create(package_path)?;
+    let mut file = File::create(package_path).context("failed to create package file")?;
     file.write_all(MAGIC.as_bytes())?;
 
     // Write content
-    write_manifest(&mut file, &diff)?;
-    write_files(b_path, &mut file, &diff)?;
+    write_manifest(&mut file, &diff).context("failed to write manifest")?;
+    write_files(b_path, &mut file, &diff).context("failed to write files")?;
 
     Ok(())
 }
