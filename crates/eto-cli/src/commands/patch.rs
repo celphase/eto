@@ -1,7 +1,9 @@
-use std::path::Path;
+use std::{path::Path, process::Command};
 
-use anyhow::{anyhow, Error};
+use anyhow::{anyhow, Context, Error};
 use clap::Args;
+use sysinfo::{Pid, PidExt, ProcessExt, System, SystemExt};
+use tracing::{event, Level};
 
 pub fn command(command: PatchCommand) -> Result<(), Error> {
     // Scan for a package.etopack
@@ -16,8 +18,29 @@ pub fn command(command: PatchCommand) -> Result<(), Error> {
         return Err(anyhow!("couldn't find package"));
     };
 
+    // If given, wait for a process to close
+    if let Some(pid) = command.wait_for {
+        event!(Level::INFO, pid, "waiting for process to close");
+        let system = System::new();
+        let process = system.process(Pid::from_u32(pid));
+
+        if let Some(process) = process {
+            process.wait();
+        } else {
+            event!(Level::WARN, "process not found");
+        }
+    }
+
+    // Apply the patch
     let directory = Path::new("./");
     eto::package::patch_directory(&package, directory)?;
+
+    // If given, launch a new process
+    if let Some(command) = command.on_complete {
+        let _ = Command::new(command)
+            .spawn()
+            .context("failed to run on_complete")?;
+    }
 
     Ok(())
 }
