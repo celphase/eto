@@ -66,7 +66,7 @@ impl State {
 
             // We've found a file, hash it so we can track changes
             let bytes = std::fs::read(path).context("failed to read file to track")?;
-            let hash = sha256::digest_bytes(&bytes);
+            let hash = sha256::digest(bytes.as_slice());
 
             event!(
                 Level::DEBUG,

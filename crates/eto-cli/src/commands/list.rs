@@ -32,6 +32,6 @@ pub fn command(command: ListCommand) -> Result<(), Error> {
 #[derive(Args, Debug)]
 pub struct ListCommand {
     /// Location of the package to list.
-    #[arg(short, long)]
+    #[arg(short, long, value_name = "PATH")]
     package: String,
 }

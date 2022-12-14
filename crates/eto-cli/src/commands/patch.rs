@@ -60,14 +60,14 @@ pub fn command(command: PatchCommand) -> Result<(), Error> {
 #[derive(Args, Debug)]
 pub struct PatchCommand {
     /// Location of the package to apply. Allows glob patterns (for example, `*.etopack`).
-    #[arg(short, long)]
+    #[arg(short, long, value_name = "PATH")]
     package: String,
 
     /// If given, wait for a process with this process identifier to close before applying.
-    #[arg(long)]
+    #[arg(long, value_name = "PID")]
     wait_for: Option<u32>,
 
     /// If given, run this command after completion.
-    #[arg(long)]
+    #[arg(long, value_name = "COMMAND")]
     on_complete: Option<String>,
 }
