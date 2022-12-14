@@ -21,8 +21,11 @@ pub fn command(command: PatchCommand) -> Result<(), Error> {
     // If given, wait for a process to close
     if let Some(pid) = command.wait_for {
         event!(Level::INFO, pid, "waiting for process to close");
-        let system = System::new();
-        let process = system.process(Pid::from_u32(pid));
+
+        let pid = Pid::from_u32(pid);
+        let mut system = System::new();
+        system.refresh_process(pid);
+        let process = system.process(pid);
 
         if let Some(process) = process {
             process.wait();
