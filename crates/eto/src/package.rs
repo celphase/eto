@@ -13,7 +13,9 @@ use tracing::{event, Level};
 
 use crate::{diff::Diff, state::State, Metadata};
 
-pub fn package_diff(a_path: &Path, b_path: &Path, package_path: &Path) -> Result<(), Error> {
+// TODO: The package API needs an overhaul, adding a low-level encoder/decoder abstraction.
+
+pub fn create_package(a_path: &Path, b_path: &Path, package_path: &Path) -> Result<(), Error> {
     let a = State::read_dir(a_path).context("failed to read a state")?;
     let b = State::read_dir(b_path).context("failed to read b state")?;
 
@@ -67,7 +69,7 @@ fn write_files(b_path: &Path, file: &mut File, diff: &Diff) -> Result<(), Error>
     let mut tar = tar::Builder::new(encoder);
 
     // Write all files that are either new or changed, as we need their content
-    for path in &diff.new {
+    for path in &diff.add {
         write_file(&mut tar, path, b_path)?;
     }
     for path in &diff.change {
@@ -109,23 +111,18 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
         Metadata::from_dir(directory_path).context("directory is not an eto tracked directory")?;
 
     // Open the package
-    event!(
-        Level::INFO,
-        path = package_path.display().to_string(),
-        "loading package"
-    );
-    let mut file = File::open(package_path).context("unable to find package")?;
-
-    // Verify the magic
-    let mut magic_bytes = [0, 0, 0, 0, 0, 0, 0, 0];
-    file.read_exact(&mut magic_bytes)?;
-    let magic = std::str::from_utf8(&magic_bytes);
-    if magic != Ok(MAGIC) {
-        bail!("package magic number does not match, file is likely not a package or has an unsupported format version");
-    }
+    let mut file = open_package_file(package_path)?;
 
     // Load the manifest from the package
-    let manifest = read_manifest(&metadata, &mut file)?;
+    let manifest = read_manifest(&mut file)?;
+    // Verify current version matches the manifest old version
+    if manifest.diff.old_version != metadata.version {
+        bail!(
+            "package was made for version \"{}\", but current version is \"{}\"",
+            manifest.diff.old_version,
+            metadata.version
+        );
+    }
 
     // Apply changes from the manifest
     read_unpack_files(&mut file, directory_path).context("failed to decode gzip data block")?;
@@ -142,19 +139,34 @@ pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(),
     Ok(())
 }
 
-fn read_manifest(metadata: &Metadata, file: &mut File) -> Result<Manifest<'static>, Error> {
+pub fn read_package_manifest(package_path: &Path) -> Result<Manifest, Error> {
+    let mut file = open_package_file(package_path)?;
+    read_manifest(&mut file)
+}
+
+fn open_package_file(path: &Path) -> Result<File, Error> {
+    event!(
+        Level::INFO,
+        path = path.display().to_string(),
+        "loading package"
+    );
+    let mut file = File::open(path).context("unable to find package")?;
+
+    // Verify the magic
+    let mut magic_bytes = [0, 0, 0, 0, 0, 0, 0, 0];
+    file.read_exact(&mut magic_bytes)?;
+    let magic = std::str::from_utf8(&magic_bytes);
+    if magic != Ok(MAGIC) {
+        bail!("package magic number does not match, file is likely not a package or has an unsupported format version");
+    }
+
+    Ok(file)
+}
+
+fn read_manifest(file: &mut File) -> Result<Manifest<'static>, Error> {
     let bytes = read_u32(file)?;
     let reader = file.take(bytes as u64);
-    let manifest: Manifest = serde_json::from_reader(reader).unwrap();
-
-    // Verify current version matches the manifest old version
-    if manifest.diff.old_version != metadata.version {
-        bail!(
-            "package was made for version \"{}\", but current version is \"{}\"",
-            manifest.diff.old_version,
-            metadata.version
-        );
-    }
+    let manifest: Manifest = serde_json::from_reader(reader).context("malformed manifest json")?;
 
     Ok(manifest)
 }

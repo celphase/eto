@@ -8,7 +8,7 @@ pub fn command(command: PackageCommand) -> Result<(), Error> {
     let b = Path::new(&command.b);
     let package = Path::new(&command.output);
 
-    eto::package_diff(a, b, package)
+    eto::package::create_package(a, b, package)
 }
 
 /// Create a package from A and B state directories.

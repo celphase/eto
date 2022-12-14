@@ -8,6 +8,7 @@
     a user, an external batch script should check for this instead if you still want this
     functionality.
 - Add specifying package location to `eto patch`.
+- Add `eto list` subcommand.
 
 ## 0.1.4
 

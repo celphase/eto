@@ -1,5 +1,5 @@
 mod diff;
-mod package;
+pub mod package;
 mod state;
 
 use std::{fs::File, path::Path};
@@ -7,11 +7,7 @@ use std::{fs::File, path::Path};
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 
-pub use crate::{
-    diff::Diff,
-    package::{package_diff, patch_directory, Manifest},
-    state::State,
-};
+pub use crate::{diff::Diff, state::State};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metadata {

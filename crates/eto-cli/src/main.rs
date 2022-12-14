@@ -4,7 +4,7 @@ mod logging;
 use clap::{Parser, Subcommand};
 use tracing::{event, Level};
 
-use crate::commands::{package::PackageCommand, patch::AutoPatchCommand};
+use crate::commands::{list::ListCommand, package::PackageCommand, patch::PatchCommand};
 
 fn main() {
     let args = Cli::parse();
@@ -14,6 +14,7 @@ fn main() {
 
     // Run the specific given command
     let result = match args.command {
+        Command::List(command) => commands::list::command(command),
         Command::Package(command) => commands::package::command(command),
         Command::Patch(command) => commands::patch::command(command),
     };
@@ -36,6 +37,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
+    List(ListCommand),
     Package(PackageCommand),
-    Patch(AutoPatchCommand),
+    Patch(PatchCommand),
 }

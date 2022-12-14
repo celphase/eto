@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::{anyhow, Error};
 use clap::Args;
 
-pub fn command(command: AutoPatchCommand) -> Result<(), Error> {
+pub fn command(command: PatchCommand) -> Result<(), Error> {
     // Scan for a package.etopack
     let result = glob::glob(&command.package);
     let package = if let Some(result) = result
@@ -17,7 +17,7 @@ pub fn command(command: AutoPatchCommand) -> Result<(), Error> {
     };
 
     let directory = Path::new("./");
-    eto::patch_directory(&package, directory)?;
+    eto::package::patch_directory(&package, directory)?;
 
     Ok(())
 }
@@ -32,7 +32,7 @@ pub fn command(command: AutoPatchCommand) -> Result<(), Error> {
 /// Use the `--wait-for` flag to wait until the original process closes, and `--on_complete` to
 /// restart it.
 #[derive(Args, Debug)]
-pub struct AutoPatchCommand {
+pub struct PatchCommand {
     /// Location of the package to apply. Allows glob patterns (for example, `*.etopack`).
     #[arg(short, long)]
     package: String,

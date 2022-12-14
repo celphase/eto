@@ -9,7 +9,7 @@ use crate::state::State;
 pub struct Diff {
     pub old_version: String,
     pub new_version: String,
-    pub new: Vec<PathBuf>,
+    pub add: Vec<PathBuf>,
     pub change: Vec<PathBuf>,
     pub delete: Vec<PathBuf>,
 }
@@ -36,7 +36,7 @@ impl Diff {
             } else {
                 // It doesn't exist, so it's new
                 event!(Level::INFO, path = path.display().to_string(), "new");
-                diff.new.push(path.clone());
+                diff.add.push(path.clone());
             }
         }
 
