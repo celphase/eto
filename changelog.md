@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 (upcoming)
+## 0.2.0
 
 - **breaking**: Change package format to JSON + custom GZip + tar data blocks.
 - Add specifying package location to `eto apply`.
