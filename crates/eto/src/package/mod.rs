@@ -106,7 +106,7 @@ fn write_file<W: Write>(
     Ok(())
 }
 
-pub fn patch_directory(package_path: &Path, directory_path: &Path) -> Result<(), Error> {
+pub fn apply_to_directory(package_path: &Path, directory_path: &Path) -> Result<(), Error> {
     // Check the directory is an eto directory and load its metadata
     let metadata =
         Metadata::from_dir(directory_path).context("directory is not an eto tracked directory")?;

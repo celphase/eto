@@ -3,13 +3,14 @@
 ## 0.2.0 (upcoming)
 
 - **breaking**: Change package format to JSON + custom GZip + tar data blocks.
-- Add specifying package location to `eto patch`.
+- Add specifying package location to `eto apply`.
 - Add `eto list` subcommand.
-- Add `wait-for` and `on-complete` flags on `patch` subcommand.
+- Add `wait-for` and `on-complete` flags on `apply` subcommand.
+- Add specific required `target` flag to `apply` subcommand.
 - Replace separate eto binaries with sub-commands.
-- Remove "not_running" feature, `eto-updater` (now `eto patch`) should no longer be run directly by
-    a user, an external batch script should check for this instead if you still want this
-    functionality.
+- Remove "not_running" feature, `eto-updater` (now `eto apply`) should no longer be run directly by
+  a user, an external batch script should check for this instead if you still want this
+  functionality.
 
 ## 0.1.4
 

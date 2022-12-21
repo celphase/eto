@@ -5,7 +5,7 @@ use clap::Args;
 use sysinfo::{Pid, PidExt, ProcessExt, System, SystemExt};
 use tracing::{event, Level};
 
-pub fn command(command: PatchCommand) -> Result<(), Error> {
+pub fn command(command: ApplyCommand) -> Result<(), Error> {
     // Scan for a package.etopack
     let result = glob::glob(&command.package);
     let package = if let Some(result) = result
@@ -35,8 +35,8 @@ pub fn command(command: PatchCommand) -> Result<(), Error> {
     }
 
     // Apply the patch
-    let directory = Path::new("./");
-    eto::package::patch_directory(&package, directory)?;
+    let directory = Path::new(&command.target);
+    eto::package::apply_to_directory(&package, directory)?;
 
     // If given, launch a new process
     if let Some(command) = command.on_complete {
@@ -48,7 +48,7 @@ pub fn command(command: PatchCommand) -> Result<(), Error> {
     Ok(())
 }
 
-/// Patch the working directory by finding and applying a package.
+/// Apply a package to the target directory.
 ///
 /// This command is intended to be used either from a script, or called by another process to
 /// update itself.
@@ -58,10 +58,14 @@ pub fn command(command: PatchCommand) -> Result<(), Error> {
 /// Use the `--wait-for` flag to wait until the original process closes, and `--on_complete` to
 /// restart it.
 #[derive(Args, Debug)]
-pub struct PatchCommand {
+pub struct ApplyCommand {
     /// Location of the package to apply. Allows glob patterns (for example, `*.etopack`).
     #[arg(short, long, value_name = "PATH")]
     package: String,
+
+    /// Target directory to apply the package to.
+    #[arg(short, value_name = "PATH")]
+    target: String,
 
     /// If given, wait for a process with this process identifier to close before applying.
     #[arg(long, value_name = "PID")]
