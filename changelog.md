@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- *Actually* fix it, whoops.
+
 ## 0.2.1
 
 - Fix deletion not being done relative to the target directory.

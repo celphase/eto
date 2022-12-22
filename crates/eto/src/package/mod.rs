@@ -130,7 +130,7 @@ pub fn apply_to_directory(package_path: &Path, directory_path: &Path) -> Result<
     for delete in &manifest.diff.delete {
         event!(Level::INFO, path = delete.display().to_string(), "delete");
 
-        let mut target = package_path.to_owned();
+        let mut target = directory_path.to_owned();
         target.push(delete);
         let result = std::fs::remove_file(target);
 
