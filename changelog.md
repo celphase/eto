@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Fix deletion not being done relative to the target directory.
+
 ## 0.2.0
 
 - **breaking**: Change package format to JSON + custom GZip + tar data blocks.

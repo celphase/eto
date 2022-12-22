@@ -129,7 +129,10 @@ pub fn apply_to_directory(package_path: &Path, directory_path: &Path) -> Result<
     read_unpack_files(&mut file, directory_path).context("failed to decode gzip data block")?;
     for delete in &manifest.diff.delete {
         event!(Level::INFO, path = delete.display().to_string(), "delete");
-        let result = std::fs::remove_file(delete);
+
+        let mut target = package_path.to_owned();
+        target.push(delete);
+        let result = std::fs::remove_file(target);
 
         // We don't particularly care if this doesn't succeed, but if it doesn't at least log it
         if result.is_err() {
