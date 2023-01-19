@@ -32,6 +32,9 @@ pub fn command(command: ApplyCommand) -> Result<(), Error> {
         } else {
             event!(Level::WARN, "process not found");
         }
+
+        // Hack because sometimes the file handle stays open a bit longer
+        std::thread::sleep(std::time::Duration::from_secs(1));
     }
 
     // Apply the patch
