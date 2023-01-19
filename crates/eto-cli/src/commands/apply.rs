@@ -64,7 +64,7 @@ pub struct ApplyCommand {
     package: String,
 
     /// Target directory to apply the package to.
-    #[arg(short, value_name = "PATH")]
+    #[arg(short, long, value_name = "PATH")]
     target: String,
 
     /// If given, wait for a process with this process identifier to close before applying.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+- Fix long "--target" flag not working.
+
 ## 0.2.2
 
 - *Actually* fix it, whoops.
